@@ -1,36 +1,61 @@
 import maya.cmds as cmds
-import maya.OpenMaya as OpenMaya
-
 import re
 
 def gridfill():
 
-    print("Hello, world!")
-
     errStr = "Please select an edge loop"
 
-    # Check if mesh is selected
-    sl = cmds.ls(selection=True)[0]
+    sl = cmds.ls(selection=True)
+    
+    # check if mesh is selected
     if not sl:
-        cmds.error("Nothing selected." + errStr)
-    elif not cmds.objectType(sl, isType="mesh"):
+        cmds.error("Nothing selected. " + errStr)
+
+    if not cmds.objectType(sl, isType="mesh"):
         cmds.error(f"Type \"{cmds.objectType(sl)}\" selected. " + errStr)
 
     # check if edge loop is selected
+    sl = sl[0]
     matches = re.search('([0-9]+):([0-9]+)', sl)
     if not matches or len(matches.groups()) != 2:
-        cmds.error(errstr)
+        cmds.error(errStr)
 
+    # inclusive range (includes beginIdx)
+    beginIdx = int(matches.group(1))
+    endIdx = int(matches.group(2))
 
-    beginIdx = matches.group(1)
-    endIdx = matches.group(2)
+    num_sledge = (endIdx - beginIdx) + 1
+    half_sledge = num_sledge // 2
+    midIdx = beginIdx + half_sledge
 
-    shapeNode = cmds.listRelatives(sl, shapes=True)
-    nodeType = cmds.nodeType(shapeNode)
+    if (num_sledge % 2 == 1):
+        cmds.warning("Please select an even number of edges")
+
+    shapeNode = cmds.listRelatives(sl, parent=True)[0]
+    objNode = cmds.listRelatives(shapeNode, parent=True)[0]
+
+    # ----------------- GRID FILL ----------------- #
+
     totalEdges = cmds.polyEvaluate(sl, edge=True)
 
-    print(totalEdges)
-    print(beginIdx)
-    print(endIdx)
+    cmds.polyCloseBorder()
+    cmds.select(f'{objNode}.vtx[{beginIdx}]')
+    cmds.select(f'{objNode}.vtx[{midIdx}]', add=True)
+    cmds.polySplit(insertpoint=[(beginIdx, 0), (midIdx, 0)])
+
+    # select the new edge
+    cmds.select(f'{objNode}.e[{totalEdges}]')
+    
+    offset = 2
+    divisions = half_sledge - offset - 1
+
+    # subdivide edge
+    cmds.polySubdivideEdge(divisions=divisions)
+
+    # edges adjacent to new edge
+    i = beginIdx + 2; j = endIdx - 1; k = totalEdges + 1
+    for d in range(0, divisions):
+        cmds.polySplit(insertpoint=[(i, 0), (k, 0), (j, 0)])
+        i += 1; j -= 1; k += 1
 
 gridfill()
