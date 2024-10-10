@@ -2,8 +2,10 @@ import maya.cmds as cmds
 import re
 
 def gridfill():
-
-    errStr = "Please select an edge loop"
+   
+    num_sledge = 0; half_sledge = 0
+    beginIdx = 0; endIdx = 0; midIdx = 0
+    errStr = "Please select an edge loop."
 
     sl = cmds.ls(selection=True)
     
@@ -23,29 +25,74 @@ def gridfill():
     # inclusive range (includes beginIdx)
     beginIdx = int(matches.group(1))
     endIdx = int(matches.group(2))
-
     num_sledge = (endIdx - beginIdx) + 1
-    half_sledge = num_sledge // 2
-    midIdx = beginIdx + half_sledge
 
     if (num_sledge % 2 == 1):
-        cmds.warning("Please select an even number of edges")
+        cmds.warning("Please select an even number of edges.")
 
+    # rest of setup
     shapeNode = cmds.listRelatives(sl, parent=True)[0]
     objNode = cmds.listRelatives(shapeNode, parent=True)[0]
+    
+    half_sledge = num_sledge // 2
+    midIdx = beginIdx + half_sledge
+    span = num_sledge // 4
+    row = num_sledge // 4
 
     # ----------------- GRID FILL ----------------- #
 
     totalEdges = cmds.polyEvaluate(sl, edge=True)
-
     cmds.polyCloseBorder()
-    cmds.select(f'{objNode}.vtx[{beginIdx}]')
-    cmds.select(f'{objNode}.vtx[{midIdx}]', add=True)
-    cmds.polySplit(insertpoint=[(beginIdx, 0), (midIdx, 0)])
 
-    # select the new edge
-    cmds.select(f'{objNode}.e[{totalEdges}]')
-    
+    i = ((beginIdx - ((span - 1) // 2)) % beginIdx) + beginIdx
+    j = ((midIdx + ((span - 1) // 2)) % beginIdx) + beginIdx
+    k = totalEdges
+    ii = i # save begin index
+
+    p = 0
+    while p < span - 1:
+        # create edge
+        cmds.select(f'{objNode}.vtx[{i}]')
+        cmds.select(f'{objNode}.vtx[{j}]', add=True)
+        cmds.polySplit(insertpoint=[(i, 0), (j, 0)])
+        # subdivide edge
+        cmds.select(f'{objNode}.e[{k}]')
+        cmds.polySubdivideEdge(divisions=span-1)
+        # increment
+        p += 1
+        if p == span - 1:
+            break
+        else:
+            i = ((i + 1) % beginIdx) + beginIdx
+            j = ((j - 1) % beginIdx) + beginIdx
+            k += span
+
+    i = ((i + 2) % beginIdx) + beginIdx 
+    j = ((ii - 2) % beginIdx) + beginIdx
+    k = totalEdges + 1
+
+    q = 0
+    while q < span - 1:
+        # create edge
+        cmds.select(f'{objNode}.vtx[{i}]')
+        cmds.select(f'{objNode}.vtx[{j}]', add=True)
+        # create intermediate points
+        kcol = k
+        orig = (j, 0); dest = (kcol, 0)
+        for _ in range(0, span - 1):
+            cmds.polySplit(insertpoint=[orig, dest])
+            kcol += span
+            orig = dest; dest = (kcol, 0)
+        cmds.polySplit(insertpoint=[orig, (i, 0)])
+        # increment
+        q += 1
+        if q == span - 1:
+            break
+        else:
+            i = ((i + 1) % beginIdx) + beginIdx
+            j = ((j - 1) % beginIdx) + beginIdx
+            k += 1
+
     offset = 2
     divisions = half_sledge - offset - 1
 
