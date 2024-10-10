@@ -36,19 +36,19 @@ def gridfill():
     
     half_sledge = num_sledge // 2
     midIdx = beginIdx + half_sledge
-    
+
     span = num_sledge // 4
     rows = span if span % 2 == 1 else span - 1
     cols = half_sledge - rows - 2
 
     # ----------------- GRID FILL ----------------- #
 
-    totalEdges = cmds.polyEvaluate(sl, edge=True)
+    rowBeginEdges = cmds.polyEvaluate(sl, edge=True)
     cmds.polyCloseBorder()
 
     i = ((beginIdx - ((span - 1) // 2)) % beginIdx) + beginIdx
     j = ((midIdx + ((span - 1) // 2)) % beginIdx) + beginIdx
-    k = totalEdges
+    k = rowBeginEdges
     ii = i # save begin index
 
     p = 0
@@ -69,9 +69,10 @@ def gridfill():
             j = ((j - 1) % beginIdx) + beginIdx
             k += cols + 1
 
+    colBeginEdges = cmds.polyEvaluate(sl, edge=True)
     i = ((i + 2) % beginIdx) + beginIdx 
     j = ((ii - 2) % beginIdx) + beginIdx
-    k = totalEdges + 1
+    k = rowBeginEdges + 1
 
     q = 0
     while q < cols:
@@ -87,12 +88,35 @@ def gridfill():
             orig = dest; dest = (kcol, 0)
         cmds.polySplit(insertpoint=[orig, (i, 0)])
         # increment
-        q += 1
+        q += 1 
         if q == span - 1:
             break
         else:
             i = ((i + 1) % beginIdx) + beginIdx
             j = ((j - 1) % beginIdx) + beginIdx
             k += 1
+    
+    # ------- cleanup / edit edge flow ------- #
+    
+    s = 1
+    while s <= ((span - 1) // 2):
+
+        # rows
+        offset = rowBeginEdges + 1 + ((s - 1) * (cols + 1))
+        cmds.select(f'{objNode}.e[{offset}:{offset + (cols - 2)}]')
+        offset = (rowBeginEdges + 1) + ((rows - 1 - (s - 1)) * (cols + 1))
+        cmds.select(f'{objNode}.e[{offset}:{offset + (cols - 2)}]', add=True)
+        cmds.polyEditEdgeFlow(adjustEdgeFlow=0)
+
+        # cols
+        offset = colBeginEdges + 1 + ((s - 1) * (cols + 1))
+        cmds.select(f'{objNode}.e[{offset}:{offset + (rows - 2)}]')
+        offset = (colBeginEdges + 1) + ((cols - 1 - (s - 1)) * (rows + 1))
+        cmds.select(f'{objNode}.e[{offset}:{offset + (rows- 2)}]', add=True)
+        cmds.polyEditEdgeFlow(adjustEdgeFlow=0)
+        
+        s += 1
+    
+    cmds.select(clear=True)
 
 gridfill()
