@@ -36,8 +36,10 @@ def gridfill():
     
     half_sledge = num_sledge // 2
     midIdx = beginIdx + half_sledge
+    
     span = num_sledge // 4
-    row = num_sledge // 4
+    rows = span if span % 2 == 1 else span - 1
+    cols = half_sledge - rows - 2
 
     # ----------------- GRID FILL ----------------- #
 
@@ -50,38 +52,38 @@ def gridfill():
     ii = i # save begin index
 
     p = 0
-    while p < span - 1:
+    while p < rows:
         # create edge
         cmds.select(f'{objNode}.vtx[{i}]')
         cmds.select(f'{objNode}.vtx[{j}]', add=True)
         cmds.polySplit(insertpoint=[(i, 0), (j, 0)])
         # subdivide edge
         cmds.select(f'{objNode}.e[{k}]')
-        cmds.polySubdivideEdge(divisions=span-1)
+        cmds.polySubdivideEdge(divisions=cols)
         # increment
         p += 1
-        if p == span - 1:
+        if p == rows:
             break
         else:
             i = ((i + 1) % beginIdx) + beginIdx
             j = ((j - 1) % beginIdx) + beginIdx
-            k += span
+            k += cols + 1
 
     i = ((i + 2) % beginIdx) + beginIdx 
     j = ((ii - 2) % beginIdx) + beginIdx
     k = totalEdges + 1
 
     q = 0
-    while q < span - 1:
+    while q < cols:
         # create edge
         cmds.select(f'{objNode}.vtx[{i}]')
         cmds.select(f'{objNode}.vtx[{j}]', add=True)
         # create intermediate points
         kcol = k
         orig = (j, 0); dest = (kcol, 0)
-        for _ in range(0, span - 1):
+        for _ in range(0, rows):
             cmds.polySplit(insertpoint=[orig, dest])
-            kcol += span
+            kcol += cols + 1
             orig = dest; dest = (kcol, 0)
         cmds.polySplit(insertpoint=[orig, (i, 0)])
         # increment
@@ -92,17 +94,5 @@ def gridfill():
             i = ((i + 1) % beginIdx) + beginIdx
             j = ((j - 1) % beginIdx) + beginIdx
             k += 1
-
-    offset = 2
-    divisions = half_sledge - offset - 1
-
-    # subdivide edge
-    cmds.polySubdivideEdge(divisions=divisions)
-
-    # edges adjacent to new edge
-    i = beginIdx + 2; j = endIdx - 1; k = totalEdges + 1
-    for d in range(0, divisions):
-        cmds.polySplit(insertpoint=[(i, 0), (k, 0), (j, 0)])
-        i += 1; j -= 1; k += 1
 
 gridfill()
