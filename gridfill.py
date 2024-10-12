@@ -1,41 +1,117 @@
 from maya import cmds
-from maya import OpenMayaUI as omui 
+from maya.OpenMayaUI import MQtUtil 
 
 # Import Qt
-from PySide6.QtCore import Qt, QFile, QSize
-from PySide6.QtWidgets import QWidget, QPushButton
+from PySide6.QtCore import Qt, QFile, QSize, QSignalMapper
+from PySide6.QtWidgets import QWidget
+from PySide6.QtGui import QIntValidator, QDoubleValidator
 from PySide6.QtUiTools import QUiLoader
 from shiboken6 import wrapInstance
 
 import os
-import os.path
 import re
 
-mayaMainWindowPtr = omui.MQtUtil.mainWindow() 
+mayaMainWindowPtr = MQtUtil.mainWindow() 
 mayaMainWindow = wrapInstance(int(mayaMainWindowPtr), QWidget) 
 
 class GridFillUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setParent(mayaMainWindow)
-        self.setWindowFlags(Qt.Window | Qt.MSWindowsFixedSizeDialogHint )
+        self.setWindowFlags(Qt.Window)
         self.setWindowTitle("Grid Fill Tool")
+        self.setFixedSize(360, 240)
         self.initUI()
+        self.connectUI()
+
 
     def initUI(self):
         loader = QUiLoader()
         ws = cmds.workspace(q=True, rd=True)
-        print(ws)
-        os.chdir(ws)
         file = QFile(ws + "/scripts/gridfill.ui")
         file.open(QFile.ReadOnly)
 
         self.ui = loader.load(file, parentWidget=self)
         file.close()
-    
-    def handleButtonClick(self):
-        b = 2
+
+
+    def connectUI(self):
+
+        # pass source widget id to handler
+        checkBoxMapper = QSignalMapper(self)
+        spinBoxMapper = QSignalMapper(self)
+        sliderMapper = QSignalMapper(self)
+
+        checkBoxMapper.setMapping(self.ui.checkBoxOffset, "checkBoxOffset")
+        checkBoxMapper.setMapping(self.ui.checkBoxInset, "checkBoxInset")
+        spinBoxMapper.setMapping(self.ui.spinBoxOffset, "spinBoxOffset")
+        spinBoxMapper.setMapping(self.ui.spinBoxInset, "spinBoxInset")
+        spinBoxMapper.setMapping(self.ui.spinBoxLoops, "spinBoxLoops")
+        sliderMapper.setMapping(self.ui.sliderOffset, "sliderOffset")
+        sliderMapper.setMapping(self.ui.sliderInset, "sliderInset")
+        sliderMapper.setMapping(self.ui.sliderLoops, "sliderLoops")
+
+        checkBoxMapper.mappedString.connect(self.handleToggle)
+        spinBoxMapper.mappedString.connect(self.handleSpinBoxChange)
+        sliderMapper.mappedString.connect(self.handleSliderChange)
+
+        # checkboxes
+        self.ui.checkBoxOffset.toggled.connect(checkBoxMapper.map)
+        self.ui.checkBoxInset.toggled.connect(checkBoxMapper.map)
+
+        # spinboxes
+        self.ui.spinBoxOffset.valueChanged.connect(spinBoxMapper.map)
+        self.ui.spinBoxInset.valueChanged.connect(spinBoxMapper.map)
+        self.ui.spinBoxLoops.valueChanged.connect(spinBoxMapper.map)
+
+        # sliders
+        self.ui.sliderOffset.valueChanged.connect(sliderMapper.map)
+        self.ui.sliderInset.valueChanged.connect(sliderMapper.map)
+        self.ui.sliderLoops.valueChanged.connect(sliderMapper.map)
+
+        # buttons
+        self.ui.btnApplyAndClose.clicked.connect(self.handleBtnApplyAndClose)
+        self.ui.btnApply.clicked.connect(self.handleBtnApply)
+        self.ui.btnClose.clicked.connect(self.handleBtnClose)
+
+
+    def handleToggle(self, id):
+        suffix = id.replace("checkBox", "")
+        getattr(self.ui, "spinBox" + suffix).setEnabled(getattr(self.ui, id).isChecked())
+        getattr(self.ui, "slider" + suffix).setEnabled(getattr(self.ui, id).isChecked())
+        if (suffix == "Inset"):
+            self.ui.spinBoxLoops.setEnabled(getattr(self.ui, id).isChecked())
+            self.ui.sliderLoops.setEnabled(getattr(self.ui, id).isChecked())
+
+
+    def handleSpinBoxChange(self, id):
+        suffix = id.replace("spinBox", "")
+        if (suffix == "Inset"):
+            self.ui.sliderInset.setValue(getattr(self.ui, id).value() * 100)
+        else:
+            getattr(self.ui, "slider" + suffix).setValue(getattr(self.ui, id).value())
+
+
+    def handleSliderChange(self, id):
+        suffix = id.replace("slider", "")
+        if (suffix == "Inset"):
+            self.ui.spinBoxInset.setValue(getattr(self.ui, id).value() / 100)
+        else:
+            getattr(self.ui, "spinBox" + suffix).setValue(getattr(self.ui, id).value())
+
+
+    def handleBtnApplyAndClose(self):
         self.gridfill()
+        self.close()
+
+
+    def handleBtnApply(self):
+        self.gridfill()
+
+
+    def handleBtnClose(self):
+        self.close()
+
 
     def gridfill(self):
     
@@ -47,7 +123,7 @@ class GridFillUI(QWidget):
         
         # check if mesh is selected
         if not sl:
-            cmds.error("Nothing selected. " + errStr)
+            print(cmds.error("Nothing selected. " + errStr))
 
         if not cmds.objectType(sl, isType="mesh"):
             cmds.error(f"Type \"{cmds.objectType(sl)}\" selected. " + errStr)
@@ -157,9 +233,9 @@ class GridFillUI(QWidget):
 
     
 def main():
-    ui = GridFillUI()
-    ui.show()
-    return ui
+    gui = GridFillUI()
+    gui.show()
+    return gui
 
 if __name__ == '__main__':
     main()
