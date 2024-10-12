@@ -1,1 +1,6 @@
-hello.py
+# Python
+__pycache__
+pyvenv.cfg
+Include/
+Lib/
+Scripts/

@@ -1,0 +1,1 @@
+pyside6-uic gridfill.ui -o gridfill_ui.py

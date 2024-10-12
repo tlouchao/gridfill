@@ -1,31 +1,40 @@
-import maya.cmds as cmds
-import re
-
+from maya import cmds
 from maya import OpenMayaUI as omui 
 
 # Import Qt
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QFile, QSize
 from PySide6.QtWidgets import QWidget, QPushButton
+from PySide6.QtUiTools import QUiLoader
 from shiboken6 import wrapInstance
+
+import os
+import os.path
+import re
 
 mayaMainWindowPtr = omui.MQtUtil.mainWindow() 
 mayaMainWindow = wrapInstance(int(mayaMainWindowPtr), QWidget) 
 
 class GridFillUI(QWidget):
-    def __init__(self, *args, **kwargs):
-        super(GridFillUI, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super().__init__()
         self.setParent(mayaMainWindow)
-        self.setWindowFlags(Qt.Window)
-        self.setObjectName('GridFillUI_uniqueId')
-        self.setWindowTitle('Grid Fill Tool')
-        self.setGeometry(100, 100, 150, 100)
+        self.setWindowFlags(Qt.Window | Qt.MSWindowsFixedSizeDialogHint )
+        self.setWindowTitle("Grid Fill Tool")
         self.initUI()
 
     def initUI(self):
-        self.button = QPushButton('Exec', self)
-        self.button.clicked.connect(self.handleButtonClick)
+        loader = QUiLoader()
+        ws = cmds.workspace(q=True, rd=True)
+        print(ws)
+        os.chdir(ws)
+        file = QFile(ws + "/scripts/gridfill.ui")
+        file.open(QFile.ReadOnly)
+
+        self.ui = loader.load(file, parentWidget=self)
+        file.close()
     
     def handleButtonClick(self):
+        b = 2
         self.gridfill()
 
     def gridfill(self):
@@ -146,10 +155,11 @@ class GridFillUI(QWidget):
         
         cmds.select(clear=True)
 
+    
 def main():
     ui = GridFillUI()
     ui.show()
     return ui
-    
+
 if __name__ == '__main__':
     main()
