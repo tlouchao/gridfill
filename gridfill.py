@@ -21,7 +21,7 @@ class GridFillUI(QWidget):
         title = "Grid Fill Tool"
         self.setParent(mayaMainWindow)
         self.setWindowFlags(Qt.Window)
-        self.setFixedSize(360, 240)
+        self.setFixedSize(360, 270)
         self.setWindowTitle(title)
         self.setLogger(title)
         self.initUI()
@@ -29,16 +29,15 @@ class GridFillUI(QWidget):
 
 
     def setLogger(self, title):
-
         fmt = logging.Formatter("%(name)s %(levelname)-8s: %(message)s")
         handler = logging.StreamHandler()
-        handler.setFormatter(fmt)
-        
+        handler.setFormatter(fmt)      
         self.logger = logging.getLogger(title)
-        self.logger.propagate = False
 
         [self.logger.removeHandler(h) for h in self.logger.handlers]
         self.logger.addHandler(handler)
+        self.logger.propagate = False
+
         self.logger.setLevel(logging.INFO)
 
 
@@ -98,6 +97,8 @@ class GridFillUI(QWidget):
         getattr(self.ui, "spinBox" + suffix).setEnabled(checked)
         getattr(self.ui, "slider" + suffix).setEnabled(checked)
         if (suffix == "Inset"):
+            self.ui.directionY.setEnabled(checked)
+            self.ui.directionZ.setEnabled(checked)
             self.ui.spinBoxLoops.setEnabled(checked)
             self.ui.sliderLoops.setEnabled(checked)
 
@@ -129,16 +130,21 @@ class GridFillUI(QWidget):
         bInset = self.ui.checkBoxInset.isChecked()
         nInset = self.ui.spinBoxInset.value()
         nLoops = self.ui.spinBoxLoops.value()
+        dirY = self.ui.directionY.isChecked()
+        dirZ = self.ui.directionZ.isChecked()
 
         self.apply(bOffset=bOffset, nOffset=nOffset, 
-                   bInset=bInset, nInset=nInset, nLoops=nLoops)
+                   bInset=bInset, nInset=nInset, 
+                   nLoops=nLoops, dirY=dirY, dirZ=dirZ)
 
 
     def handleBtnClose(self):
         self.close()
 
 
-    def apply(self, bOffset=False, nOffset=0, bInset=False, nInset=0, nLoops=0):
+    def apply(self, bOffset=False, nOffset=0, 
+              bInset=False, nInset=0, 
+              nLoops=0, dirY=False, dirZ=True):
     
         try:
             # start transaction
@@ -166,6 +172,16 @@ class GridFillUI(QWidget):
             sledge = cmds.polyEvaluate(sl[0], edgeComponent=True)
             if (sledge % 2 == 1):
                 self.logger.warning("Please select an even number of edges.")
+
+            # handle inset and reselect edge
+            if (bInset):
+                if (dirY):
+                    cmds.polyExtrudeEdge(*sl, off=nInset, divisions=nLoops + 1)
+                if (dirZ):
+                    nInset = -nInset
+                    cmds.polyExtrudeEdge(*sl, ltz=nInset, divisions=nLoops + 1)
+                sl = cmds.ls(selection=True)
+            
             rowBeginEdge = cmds.polyEvaluate(sl[0], edge=True)
 
             # map consecutive edges 
@@ -207,10 +223,12 @@ class GridFillUI(QWidget):
 
             # ------- create edges parallel to edge from start vertex -------- #
 
-            cmds.select(sl)
             cmds.polyCloseBorder()
-            
-            i = 0; j = sledge // 2
+
+            # handle offset
+            offset = nOffset if bOffset else 0
+            i = 0 + offset; j = (sledge // 2) + offset
+
             i = self.selectIdx(i - ((span - 1) // 2), sledge)
             j = self.selectIdx(j + ((span - 1) // 2), sledge)
             k = rowBeginEdge
@@ -298,10 +316,10 @@ class GridFillUI(QWidget):
 
             # select initial edge loop
             cmds.select(sl)
-            print("Completed Grid Fill")
+            self.logger.info("Completed Grid Fill")
 
         except Exception as e:
-            cmds.error(e)
+            self.logger.exception(e)
         finally:
             # end transaction
             cmds.undoInfo(closeChunk=True)
