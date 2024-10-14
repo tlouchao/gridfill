@@ -1,4 +1,5 @@
 from maya import cmds
+from maya import mel
 from maya.OpenMayaUI import MQtUtil 
 
 # Import Qt
@@ -103,84 +104,97 @@ class GridFillUI(QWidget):
 
 
     def handleBtnApply(self):
-        doOffset = self.ui.checkBoxOffset.isChecked()
-        numOffset = self.ui.spinBoxOffset.value()
-        doInset = self.ui.checkBoxInset.isChecked()
-        numInset = self.ui.spinBoxInset.value()
-        self.gridfill(doOffset=doOffset, numOffset=numOffset, 
-                      doInset=doInset, numInset=numInset)
+
+        bOffset = self.ui.checkBoxOffset.isChecked()
+        nOffset = self.ui.spinBoxOffset.value()
+
+        bInset = self.ui.checkBoxInset.isChecked()
+        nInset = self.ui.spinBoxInset.value()
+        nLoops = self.ui.spinBoxLoops.value()
+
+        self.apply(bOffset=bOffset, nOffset=nOffset, 
+                   bInset=bInset, nInset=nInset, nLoops=nLoops)
 
 
     def handleBtnClose(self):
         self.close()
 
 
-    def gridfill(self, doOffset=False, numOffset=0, doInset=False, numInset=0):
+    def apply(self, bOffset=False, nOffset=0, bInset=False, nInset=0, nLoops=0):
     
         try:
             # start transaction
-            cmds.undoInfo(openChunk=True, infinity=True, chunkName='Grid Fill')
+            cmds.undoInfo(openChunk=True, infinity=True, chunkName='GridFill')
 
-            # init
-            num_sledge = 0; half_sledge = 0
+            # validation ----------------------------------------------------- #
+            sledge = 0; half_sledge = 0
             beginIdx = 0; endIdx = 0; midIdx = 0
+            mapEdge = dict(); mapVtx = dict()
             errStr = "Please select an edge loop."
 
-            sl = cmds.ls(selection=True)
+            # enforce edge loop selection
+            mel.eval('polySelectSp -loop')
             
-            # check if mesh is selected
+            # check if selected
+            sl = cmds.ls(selection=True)
             if not sl:
                 cmds.error("Nothing selected. " + errStr)
 
-            if not cmds.objectType(sl, isType="mesh"):
-                cmds.error(f"Type \"{cmds.objectType(sl)}\" selected. " + errStr)
+            if not cmds.objectType(sl[0], isType="mesh"):
+                typeErrStr = f"Type \"{cmds.objectType(sl)}\" selected. "
+                cmds.error(typeErrStr + errStr)
 
-            # check if edge loop is selected
-            sl = sl[0]
-            matches = re.search('([0-9]+):([0-9]+)', sl)
-            if not matches or len(matches.groups()) != 2:
-                cmds.error(errStr)
-
-            # inclusive range (includes beginIdx)
-            beginIdx = int(matches.group(1))
-            endIdx = int(matches.group(2))
-            num_sledge = (endIdx - beginIdx) + 1
-
-            if (num_sledge % 2 == 1):
-                cmds.warning("Please select an even number of edges.")
-
-            # rest of setup
+            slv = cmds.polyListComponentConversion(toVertex=True)
             shapeNode = cmds.listRelatives(sl, parent=True)[0]
             objNode = cmds.listRelatives(shapeNode, parent=True)[0]
-            
-            half_sledge = num_sledge // 2
+
+            if (len(sl) == 1):
+
+                sl = sl[0]
+                matches = re.search('([0-9]+):([0-9]+)', sl)
+                
+                # inclusive range (includes end index)
+                beginIdx = int(matches.group(1))
+                endIdx = int(matches.group(2))
+                sledge = ((endIdx + 1) - beginIdx)
+                if (sledge % 2 == 1):
+                    cmds.warning("Please select an even number of edges.")
+                mapBeginIdx = 0; mapMidIdx = sledge // 2; mapEndIdx = sledge
+                
+                k = 0
+                for k in range(sledge):
+                    mapEdge[k] = beginIdx + k
+                    mapVtx[k] = beginIdx + k
+                    k += 1
+                    
+            else:
+                print(len(sl))
+
+            # rest of setup            
+            half_sledge = sledge // 2
             midIdx = beginIdx + half_sledge
 
-            span = num_sledge // 4
+            span = sledge // 4
             rows = span if span % 2 == 1 else span - 1
             cols = half_sledge - rows - 2
 
-            # ----------------- GRID FILL ----------------- #
-
-            rowBeginEdges = cmds.polyEvaluate(sl, edge=True)
+            # create edges parallel to edge from start vertex ---------------- #
+            cmds.select(sl)
+            rowBeginEdge = cmds.polyEvaluate(sl, edge=True)
             cmds.polyCloseBorder()
-
-            i = beginIdx; j = midIdx
-            if (doOffset):
-                print(numOffset)
-                i += numOffset; j += numOffset
-
-            i = ((i - ((span - 1) // 2)) % beginIdx) + beginIdx
-            j = ((j + ((span - 1) // 2)) % beginIdx) + beginIdx
-            k = rowBeginEdges
+            
+            i = 0; j = mapMidIdx
+            i = self.selectIdx(i - ((span - 1) // 2), sledge)
+            j = self.selectIdx(j + ((span - 1) // 2), sledge)
+            k = rowBeginEdge
             ii = i # save begin index
 
             p = 0
             while p < rows:
                 # create edge
-                cmds.select(f'{objNode}.vtx[{i}]')
-                cmds.select(f'{objNode}.vtx[{j}]', add=True)
-                cmds.polySplit(insertpoint=[(i, 0), (j, 0)])
+                cmds.select(f'{objNode}.vtx[{mapVtx[i]}]')
+                cmds.select(f'{objNode}.vtx[{mapVtx[j]}]', add=True)
+                cmds.polySplit(insertpoint=[(mapEdge[i], 0), (mapEdge[j], 0)])
                 # subdivide edge
                 cmds.select(f'{objNode}.e[{k}]')
                 cmds.polySubdivideEdge(divisions=cols)
@@ -189,54 +203,53 @@ class GridFillUI(QWidget):
                 if p == rows:
                     break
                 else:
-                    i = ((i + 1) % beginIdx) + beginIdx
-                    j = ((j - 1) % beginIdx) + beginIdx
+                    # i = ((i + 1) % beginIdx) + beginIdx
+                    # j = ((j - 1) % beginIdx) + beginIdx
+                    i = self.selectIdx(i + 1, sledge)
+                    j = self.selectIdx(j - 1, sledge)
                     k += cols + 1
-
-            colBeginEdges = cmds.polyEvaluate(sl, edge=True)
-            i = ((i + 2) % beginIdx) + beginIdx 
-            j = ((ii - 2) % beginIdx) + beginIdx
-            k = rowBeginEdges + 1
+            
+            # create edges perpendicular to edge from start vertex ----------- #
+            colBeginEdge = cmds.polyEvaluate(sl, edge=True)
+            i = self.selectIdx(i + 2, sledge)
+            j = self.selectIdx(ii - 2, sledge)
+            k = rowBeginEdge + 1
 
             q = 0
             while q < cols:
-                # create edge
-                cmds.select(f'{objNode}.vtx[{i}]')
-                cmds.select(f'{objNode}.vtx[{j}]', add=True)
                 # create intermediate points
                 kcol = k
-                orig = (j, 0); dest = (kcol, 0)
+                orig = (mapEdge[j], 0); dest = (kcol, 0)
                 for _ in range(0, rows):
                     cmds.polySplit(insertpoint=[orig, dest])
                     kcol += cols + 1
                     orig = dest; dest = (kcol, 0)
-                cmds.polySplit(insertpoint=[orig, (i, 0)])
+                cmds.polySplit(insertpoint=[orig, (mapEdge[i], 0)])
                 # increment
                 q += 1 
                 if q == cols:
                     break
                 else:
-                    i = ((i + 1) % beginIdx) + beginIdx
-                    j = ((j - 1) % beginIdx) + beginIdx
+                    i = self.selectIdx(i + 1, sledge)
+                    j = self.selectIdx(j - 1, sledge)
                     k += 1
             
-            # --------------- edit edge flow --------------- #
-            
-            s = 1
-            while s <= ((span - 1) // 2):
+            # edit edge flow ------------------------------------------------- #
+            s = 0
+            while s < ((span - 1) // 2):
 
                 # rows
-                offset = rowBeginEdges + 1 + ((s - 1) * (cols + 1))
-                cmds.select(f'{objNode}.e[{offset}:{offset + (cols - 2)}]')
-                offset = (rowBeginEdges + 1) + ((rows - 1 - (s - 1)) * (cols + 1))
-                cmds.select(f'{objNode}.e[{offset}:{offset + (cols - 2)}]', add=True)
+                t = rowBeginEdge + 1 + (s * (cols + 1))
+                cmds.select(f'{objNode}.e[{t}:{t + (cols - 2)}]')
+                t = (rowBeginEdge + 1) + ((rows - 1 - s) * (cols + 1))
+                cmds.select(f'{objNode}.e[{t}:{t + (cols - 2)}]', add=True)
                 cmds.polyEditEdgeFlow(adjustEdgeFlow=0)
 
                 # cols
-                offset = colBeginEdges + 1 + ((s - 1) * (cols + 1))
-                cmds.select(f'{objNode}.e[{offset}:{offset + (rows - 2)}]')
-                offset = (colBeginEdges + 1) + ((cols - 1 - (s - 1)) * (rows + 1))
-                cmds.select(f'{objNode}.e[{offset}:{offset + (rows- 2)}]', add=True)
+                t = colBeginEdge + 1 + (s * (cols + 1))
+                cmds.select(f'{objNode}.e[{t}:{t + (rows - 2)}]')
+                t = (colBeginEdge + 1) + ((cols - 1 - s) * (rows + 1))
+                cmds.select(f'{objNode}.e[{t}:{t + (rows - 2)}]', add=True)
                 cmds.polyEditEdgeFlow(adjustEdgeFlow=0)
                 
                 s += 1
@@ -244,11 +257,23 @@ class GridFillUI(QWidget):
             # select initial edge loop
             cmds.select(sl)
             print("Completed Grid Fill")
+
         except Exception as e:
-            print(e)
+            cmds.error(e)
         finally:
             # end transaction
             cmds.undoInfo(closeChunk=True)
+
+    '''
+    Helper function to select edge loop index
+    '''
+    def selectIdx(self, idx, n):
+        ret = idx
+        if idx < 0:
+            ret = n - abs(idx)
+        elif idx >= n:
+            ret = abs(n - idx)
+        return ret
 
     
 def main():
