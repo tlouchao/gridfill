@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>360</width>
-    <height>304</height>
+    <height>300</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -49,7 +49,7 @@
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>60</height>
+       <height>50</height>
       </size>
      </property>
      <property name="maximumSize">
@@ -90,6 +90,9 @@
          <width>50</width>
          <height>25</height>
         </size>
+       </property>
+       <property name="toolTip">
+        <string>Defines the vertex that is considered to be the corner of the grid. Changing the offset rotates the grid.</string>
        </property>
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::NoButtons</enum>
@@ -173,6 +176,9 @@
          <height>25</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>Add an inset to the edges of the center face.</string>
+       </property>
        <property name="buttonSymbols">
         <enum>QAbstractSpinBox::NoButtons</enum>
        </property>
@@ -180,13 +186,13 @@
         <number>3</number>
        </property>
        <property name="minimum">
-        <double>-5.000000000000000</double>
+        <double>-100.000000000000000</double>
        </property>
        <property name="maximum">
-        <double>5.000000000000000</double>
+        <double>100.000000000000000</double>
        </property>
        <property name="singleStep">
-        <double>0.500000000000000</double>
+        <double>1.000000000000000</double>
        </property>
        <property name="value">
         <double>1.000000000000000</double>
@@ -214,7 +220,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>Add an inset to the outer edge of the center face.</string>
+        <string>Add an inset to the edges of the center face.</string>
        </property>
        <property name="text">
         <string>Add Inset</string>
@@ -233,13 +239,13 @@
         </sizepolicy>
        </property>
        <property name="minimum">
-        <number>-500</number>
+        <number>-1000</number>
        </property>
        <property name="maximum">
-        <number>500</number>
+        <number>1000</number>
        </property>
        <property name="singleStep">
-        <number>50</number>
+        <number>100</number>
        </property>
        <property name="pageStep">
         <number>100</number>
@@ -276,7 +282,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>If an inset is added, increases the number of divisions.</string>
+        <string/>
        </property>
        <property name="text">
         <string>Inset Edge Loops</string>
@@ -322,8 +328,11 @@
          <height>25</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>If an inset is added, increases the number of divisions.</string>
+       </property>
        <property name="maximum">
-        <number>10</number>
+        <number>100</number>
        </property>
       </widget>
      </item>
@@ -362,6 +371,9 @@
            <height>0</height>
           </size>
          </property>
+         <property name="toolTip">
+          <string>Extend inset along the Y-axis.</string>
+         </property>
          <property name="text">
           <string>Y</string>
          </property>
@@ -386,6 +398,9 @@
            <width>90</width>
            <height>16777215</height>
           </size>
+         </property>
+         <property name="toolTip">
+          <string>Extend inset along the Z-axis.</string>
          </property>
          <property name="text">
           <string>Z</string>
@@ -415,7 +430,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>If an inset is added, enable either offset along the Y-axis, or local translate Z along the Z-axis.</string>
+        <string/>
        </property>
        <property name="text">
         <string>Inset Direction</string>
@@ -455,6 +470,9 @@
          <width>90</width>
          <height>25</height>
         </size>
+       </property>
+       <property name="toolTip">
+        <string>Configure the center face style.</string>
        </property>
        <property name="text">
         <string>Face</string>
