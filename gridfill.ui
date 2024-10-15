@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>360</width>
-    <height>270</height>
+    <height>304</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -71,6 +71,9 @@
    </item>
    <item>
     <layout class="QGridLayout" name="offsetLayout">
+     <property name="sizeConstraint">
+      <enum>QLayout::SetMinimumSize</enum>
+     </property>
      <item row="0" column="1">
       <widget class="QSpinBox" name="spinBoxOffset">
        <property name="enabled">
@@ -116,8 +119,11 @@
        <property name="maximumSize">
         <size>
          <width>90</width>
-         <height>16777215</height>
+         <height>25</height>
         </size>
+       </property>
+       <property name="toolTip">
+        <string>Defines the vertex that is considered to be the corner of the grid. Changing the offset rotates the grid.</string>
        </property>
        <property name="text">
         <string>Add Offset</string>
@@ -149,9 +155,52 @@
     </layout>
    </item>
    <item>
-    <layout class="QGridLayout" name="insetLayout" rowstretch="1,0,0,0,0,0">
-     <item row="2" column="0">
-      <widget class="QLabel" name="labelLoops">
+    <layout class="QGridLayout" name="insetLayout">
+     <item row="0" column="1">
+      <widget class="QDoubleSpinBox" name="spinBoxInset">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>50</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>50</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="decimals">
+        <number>3</number>
+       </property>
+       <property name="minimum">
+        <double>-5.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>5.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.500000000000000</double>
+       </property>
+       <property name="value">
+        <double>1.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="checkBoxInset">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>90</width>
@@ -161,34 +210,18 @@
        <property name="maximumSize">
         <size>
          <width>90</width>
-         <height>16777215</height>
+         <height>25</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>Add an inset to the outer edge of the center face.</string>
+       </property>
        <property name="text">
-        <string>Inset Edge Loops</string>
+        <string>Add Inset</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="labelDirection">
-       <property name="minimumSize">
-        <size>
-         <width>90</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>90</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Inset Direction</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
+     <item row="0" column="2">
       <widget class="QSlider" name="sliderInset">
        <property name="enabled">
         <bool>false</bool>
@@ -229,13 +262,7 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QCheckBox" name="checkBoxInset">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
+      <widget class="QLabel" name="labelLoops">
        <property name="minimumSize">
         <size>
          <width>90</width>
@@ -245,74 +272,34 @@
        <property name="maximumSize">
         <size>
          <width>90</width>
-         <height>16777215</height>
+         <height>25</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>If an inset is added, increases the number of divisions.</string>
+       </property>
        <property name="text">
-        <string>Add Inset</string>
+        <string>Inset Edge Loops</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QSlider" name="sliderLoops">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="maximum">
+        <number>10</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::NoTicks</enum>
        </property>
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QDoubleSpinBox" name="spinBoxInset">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>50</width>
-         <height>25</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>50</width>
-         <height>25</height>
-        </size>
-       </property>
-       <property name="buttonSymbols">
-        <enum>QAbstractSpinBox::NoButtons</enum>
-       </property>
-       <property name="decimals">
-        <number>3</number>
-       </property>
-       <property name="minimum">
-        <double>-5.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>5.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.500000000000000</double>
-       </property>
-       <property name="value">
-        <double>1.000000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="1">
-      <widget class="QLabel" name="labelEmpty">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>50</width>
-         <height>25</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>50</width>
-         <height>25</height>
-        </size>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
       <widget class="QSpinBox" name="spinBoxLoops">
        <property name="enabled">
         <bool>false</bool>
@@ -340,7 +327,29 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="2">
+     <item row="2" column="1">
+      <widget class="QLabel" name="labelEmpty">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>50</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>50</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
       <layout class="QHBoxLayout" name="directionLayout">
        <item>
         <widget class="QRadioButton" name="directionY">
@@ -357,7 +366,7 @@
           <string>Y</string>
          </property>
          <attribute name="buttonGroup">
-          <string notr="true">buttonGroup</string>
+          <string notr="true">dirButtonGroup</string>
          </attribute>
         </widget>
        </item>
@@ -368,8 +377,14 @@
          </property>
          <property name="minimumSize">
           <size>
-           <width>0</width>
+           <width>90</width>
            <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>90</width>
+           <height>16777215</height>
           </size>
          </property>
          <property name="text">
@@ -379,27 +394,148 @@
           <bool>true</bool>
          </property>
          <attribute name="buttonGroup">
-          <string notr="true">buttonGroup</string>
+          <string notr="true">dirButtonGroup</string>
          </attribute>
         </widget>
        </item>
       </layout>
      </item>
-     <item row="2" column="2">
-      <widget class="QSlider" name="sliderLoops">
-       <property name="enabled">
-        <bool>false</bool>
+     <item row="2" column="0">
+      <widget class="QLabel" name="labelDirection">
+       <property name="minimumSize">
+        <size>
+         <width>90</width>
+         <height>0</height>
+        </size>
        </property>
-       <property name="maximum">
-        <number>10</number>
+       <property name="maximumSize">
+        <size>
+         <width>90</width>
+         <height>25</height>
+        </size>
        </property>
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+       <property name="toolTip">
+        <string>If an inset is added, enable either offset along the Y-axis, or local translate Z along the Z-axis.</string>
        </property>
-       <property name="tickPosition">
-        <enum>QSlider::NoTicks</enum>
+       <property name="text">
+        <string>Inset Direction</string>
        </property>
       </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="Line" name="line">
+     <property name="frameShadow">
+      <enum>QFrame::Sunken</enum>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="faceLayout" stretch="0,1">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetDefaultConstraint</enum>
+     </property>
+     <item>
+      <widget class="QLabel" name="labelFace">
+       <property name="minimumSize">
+        <size>
+         <width>90</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>90</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Face</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QGridLayout" name="faceRadioLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetDefaultConstraint</enum>
+       </property>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QRadioButton" name="faceTypeDefault">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Default behavior. Apply a grid fill to the center face.</string>
+         </property>
+         <property name="text">
+          <string>Default</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">faceButtonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QRadioButton" name="faceTypeNone">
+         <property name="minimumSize">
+          <size>
+           <width>90</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>90</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Alternate behavior. Do not create a center face.</string>
+         </property>
+         <property name="text">
+          <string>None</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">faceButtonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QRadioButton" name="faceTypeNgon">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Alternate behavior. Create an n-gon center face.</string>
+         </property>
+         <property name="text">
+          <string>N-gon</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">faceButtonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>
@@ -410,8 +546,8 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>20</width>
-       <height>40</height>
+       <width>339</width>
+       <height>55</height>
       </size>
      </property>
     </spacer>
@@ -464,6 +600,7 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup"/>
+  <buttongroup name="faceButtonGroup"/>
+  <buttongroup name="dirButtonGroup"/>
  </buttongroups>
 </ui>

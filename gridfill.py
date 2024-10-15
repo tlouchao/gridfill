@@ -10,10 +10,25 @@ from shiboken6 import wrapInstance
 
 import re
 import logging
+from enum import Enum
 
 mayaMainWindowPtr = MQtUtil.mainWindow() 
-mayaMainWindow = wrapInstance(int(mayaMainWindowPtr), QWidget) 
+mayaMainWindow = wrapInstance(int(mayaMainWindowPtr), QWidget)
 
+
+'''
+Enumeration class to store grid fill settings
+'''
+class Face(Enum):
+    GRID=0
+    NGON=1
+    NONE=2
+
+
+'''
+Add functionality to the QT Designer UI
+On confirmation, apply grid fill to the central face
+'''
 class GridFillUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -21,7 +36,7 @@ class GridFillUI(QWidget):
         title = "Grid Fill Tool"
         self.setParent(mayaMainWindow)
         self.setWindowFlags(Qt.Window)
-        self.setFixedSize(360, 270)
+        self.setFixedSize(360, 300)
         self.setWindowTitle(title)
         self.setLogger(title)
         self.initUI()
@@ -42,6 +57,8 @@ class GridFillUI(QWidget):
 
 
     def initUI(self):
+
+        # load the QT Designer File
         loader = QUiLoader()
         ws = cmds.workspace(q=True, rd=True)
         file = QFile(ws + "/scripts/gridfill.ui")
@@ -49,6 +66,11 @@ class GridFillUI(QWidget):
 
         self.ui = loader.load(file, parentWidget=self)
         file.close()
+
+        # additional setup for radio buttons
+        self.ui.faceButtonGroup.setId(self.ui.faceTypeDefault, Face.GRID.value)
+        self.ui.faceButtonGroup.setId(self.ui.faceTypeNgon, Face.NGON.value)
+        self.ui.faceButtonGroup.setId(self.ui.faceTypeNone, Face.NONE.value)
 
 
     def connectUI(self):
@@ -133,27 +155,30 @@ class GridFillUI(QWidget):
         dirY = self.ui.directionY.isChecked()
         dirZ = self.ui.directionZ.isChecked()
 
-        self.apply(bOffset=bOffset, nOffset=nOffset, 
-                   bInset=bInset, nInset=nInset, 
-                   nLoops=nLoops, dirY=dirY, dirZ=dirZ)
+        face = self.ui.faceButtonGroup.checkedId()
+        if (face == Face.GRID.value):
+            self.logger.info("Mode: DEFAULT")
+        else:
+            self.logger.info("Mode: " + Face(face).name)
+
+        self.gridfill(bOffset=bOffset, nOffset=nOffset, 
+                      bInset=bInset, nInset=nInset, nLoops=nLoops, 
+                      dirY=dirY, dirZ=dirZ, face=face)
 
 
     def handleBtnClose(self):
         self.close()
 
 
-    def apply(self, bOffset=False, nOffset=0, 
-              bInset=False, nInset=0, 
-              nLoops=0, dirY=False, dirZ=True):
+    def gridfill(self, bOffset=False, nOffset=0, 
+                 bInset=False, nInset=0, nLoops=0, 
+                 dirY=False, dirZ=True, face=Face.GRID.value):
     
         try:
             # start transaction
             cmds.undoInfo(openChunk=True, infinity=True, chunkName='GridFill')
 
-            # -------------------------validation ---------------------------- #
-
-            sledge = 0
-            mapEdge = dict()
+            # validation
             errStr = "Please select an edge loop."
 
             # enforce edge loop selection
@@ -180,9 +205,41 @@ class GridFillUI(QWidget):
                 if (dirZ):
                     nInset = -nInset
                     cmds.polyExtrudeEdge(*sl, ltz=nInset, divisions=nLoops + 1)
-                sl = cmds.ls(selection=True)
+
+                sl = cmds.ls(selection=True) # reselect edge
             
+            # handle grid fill behavior
+            match face:
+
+                 # do nothing
+                case Face.NONE.value:
+                    pass
+                 # fill hole
+                case Face.NGON.value:
+                    cmds.polyCloseBorder()               
+                # grid fill
+                case Face.GRID.value | _:
+                    self.gridfillImpl(sl, bOffset=bOffset, nOffset=nOffset)
+
+            self.logger.info("Completed Grid Fill")
+
+        except Exception as e:
+            self.logger.exception(e)
+        finally:
+            # end transaction
+            cmds.undoInfo(closeChunk=True)
+
+
+    '''
+    Apply grid fill implementation
+    '''
+    def gridfillImpl(self, sl, bOffset=False, nOffset=0):
+
+            cmds.polyCloseBorder()
+
+            mapEdge = dict()
             rowBeginEdge = cmds.polyEvaluate(sl[0], edge=True)
+            sledge = cmds.polyEvaluate(sl[0], edgeComponent=True)
 
             # map consecutive edges 
             if (len(sl) == 1):
@@ -222,8 +279,6 @@ class GridFillUI(QWidget):
             objNode = cmds.listRelatives(shapeNode, parent=True)[0]
 
             # ------- create edges parallel to edge from start vertex -------- #
-
-            cmds.polyCloseBorder()
 
             # handle offset
             offset = nOffset if bOffset else 0
@@ -316,13 +371,7 @@ class GridFillUI(QWidget):
 
             # select initial edge loop
             cmds.select(sl)
-            self.logger.info("Completed Grid Fill")
 
-        except Exception as e:
-            self.logger.exception(e)
-        finally:
-            # end transaction
-            cmds.undoInfo(closeChunk=True)
 
     '''
     Helper function to select edge loop index
